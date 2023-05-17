@@ -19,7 +19,6 @@ use std::{
 const DEFAULT_SERVER_PORT: u16 = 25565;
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct Server {
     // Basic properties
     version: Version,
@@ -28,12 +27,18 @@ pub struct Server {
     favicon: String,
 
     // Forge server
-    #[serde(alias = "forgeData", rename = "forgeData")]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        alias = "forgeData",
+        rename = "forgeData",
+        skip_serializing_if = "Option::is_none"
+    )]
     forge_data: Option<ForgeData>,
 
-    #[serde(alias = "enforcesSecureChat", rename = "enforcesSecureChat")]
-    #[serde(default = "enforces_secure_chat_default")]
+    #[serde(
+        alias = "enforcesSecureChat",
+        rename = "enforcesSecureChat",
+        default = "enforces_secure_chat_default"
+    )]
     enforces_secure_chat: bool,
 
     // Extra info
@@ -59,8 +64,7 @@ struct Version {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
-#[serde(default)]
+#[serde(deny_unknown_fields, default)]
 pub struct Players {
     max: i32,
     online: i32,
@@ -85,15 +89,23 @@ struct Player {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, default)]
 struct Description {
     extra: Vec<DescriptionExtra>,
     text: String,
 }
 
+impl Default for Description {
+    fn default() -> Self {
+        Description {
+            extra: vec![],
+            text: "".into(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
-#[serde(default)]
+#[serde(deny_unknown_fields, default)]
 struct DescriptionExtra {
     color: String,
     bold: bool,
@@ -166,8 +178,8 @@ pub fn get_server_status(msp: &Msp) -> Result<Server, MspErr> {
 
     // Debug block
     //
-    let mut demo_result_file = std::fs::File::create(".demo.json").expect("fail");
-    demo_result_file.write(&data_buffer).unwrap();
+    // let mut demo_result_file = std::fs::File::create(".demo.json").expect("fail");
+    // demo_result_file.write(&data_buffer).unwrap();
     // println!("{:?}", std::str::from_utf8(&data_buffer));
 
     match std::str::from_utf8(&data_buffer) {

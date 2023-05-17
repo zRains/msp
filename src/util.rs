@@ -126,6 +126,32 @@ impl QueryReader {
         Ok(String::from_utf8_lossy(result.as_slice()).into())
     }
 
+    pub fn read_str_group(&mut self) -> Result<Vec<String>, MspErr> {
+        let mut result = Vec::new();
+        let mut str_group = Vec::<String>::new();
+
+        loop {
+            let buf = self.read(true)?;
+
+            match buf {
+                0x00 => {
+                    let next_buf = self.read(true)?;
+
+                    if next_buf == 0x00 {
+                        break;
+                    }
+
+                    str_group.push(String::from_utf8_lossy(result.as_slice()).into());
+                    result.clear();
+                    result.push(next_buf);
+                }
+                common_buf => result.push(common_buf),
+            }
+        }
+
+        Ok(str_group)
+    }
+
     pub fn read_kv(&mut self) -> Result<(String, String), MspErr> {
         let mut result = Vec::new();
         let mut kv: (Option<String>, Option<String>) = (None, None);

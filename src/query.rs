@@ -41,6 +41,7 @@ pub struct QueryFull {
     maxplayers: String,
     hostport: String,
     hostip: String,
+    players: Vec<String>,
 }
 
 impl std::fmt::Display for QueryFull {
@@ -253,5 +254,11 @@ pub fn query_full_status(msp: &Msp) -> Result<QueryFull, MspErr> {
         maxplayers: nt_str_reader.read_kv()?.1,
         hostport: nt_str_reader.read_kv()?.1,
         hostip: nt_str_reader.read_kv()?.1,
+        players: {
+            // Because there are two null-terminated tokens at the end of the KV section,
+            // only one was consumed previously.
+            nt_str_reader.set_current_idx_forward(10 + 1);
+            nt_str_reader.read_str_group()?
+        },
     })
 }
