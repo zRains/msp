@@ -3,6 +3,7 @@ name = "msp"
 license = "MIT"
 version = "0.1.0"
 edition = "2021"
+description = "Fast and lightweight Minecraft Server protocol client implemented in Rust."
 keywords = ["minecraft", "protocol", "lightweight"]
 categories = ["command-line-utilities", "game", "value-formatting"]
 homepage = "https://github.com/zRains/msp"
