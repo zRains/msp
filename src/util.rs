@@ -1,6 +1,5 @@
 use crate::MspErr;
 use std::{
-    collections::HashMap,
     net::{Ipv4Addr, TcpStream, UdpSocket},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -127,27 +126,23 @@ impl QueryReader {
         Ok(String::from_utf8_lossy(result.as_slice()).into())
     }
 
-    pub fn read_kv(&mut self) -> Result<HashMap<String, String>, MspErr> {
+    pub fn read_kv(&mut self) -> Result<(String, String), MspErr> {
         let mut result = Vec::new();
+        let mut kv: (Option<String>, Option<String>) = (None, None);
 
         loop {
             let buf = self.read(true)?;
 
             match buf {
                 0x00 => {
-                    let next_buf = self.read(true)?;
-
-                    if next_buf == 0x00 {
-                        break;
+                    if kv.0.is_none() {
+                        kv.0 = Some(String::from_utf8_lossy(result.as_slice()).into());
+                        result.clear();
+                        continue;
                     }
 
-                    result.push(buf);
-
-                    if next_buf >= 0x80 && 0xBF >= next_buf {
-                        result.push(0xC2);
-                    }
-
-                    result.push(next_buf);
+                    kv.1 = Some(String::from_utf8_lossy(result.as_slice()).into());
+                    break;
                 }
                 special_buf
                     if special_buf >= 0x80
@@ -160,21 +155,6 @@ impl QueryReader {
             }
         }
 
-        let utf8_lossy_str = String::from_utf8_lossy(result.as_slice());
-        let kv_section_str = utf8_lossy_str.split("\0").collect::<Vec<_>>();
-
-        if kv_section_str.len() % 2 != 0 {
-            return Err(MspErr::DataErr(
-                "The response data cannot be converted to a standard JSON format".into(),
-            ));
-        }
-
-        let mut result = HashMap::new();
-
-        kv_section_str.chunks(2).for_each(|c| {
-            result.insert(c[0].into(), c[1].into());
-        });
-
-        Ok(result)
+        Ok((kv.0.unwrap_or("".into()), kv.1.unwrap_or("".into())))
     }
 }

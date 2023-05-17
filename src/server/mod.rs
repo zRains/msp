@@ -21,15 +21,22 @@ const DEFAULT_SERVER_PORT: u16 = 25565;
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Server {
+    // Basic properties
     version: Version,
     players: Players,
     description: Description,
     favicon: String,
+
+    // Forge server
     #[serde(alias = "forgeData", rename = "forgeData")]
-    forge_data: ForgeData,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    forge_data: Option<ForgeData>,
+
     #[serde(alias = "enforcesSecureChat", rename = "enforcesSecureChat")]
     #[serde(default = "enforces_secure_chat_default")]
     enforces_secure_chat: bool,
+
+    // Extra info
     #[serde(default = "ping_default")]
     ping: u64,
 }
@@ -53,10 +60,21 @@ struct Version {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
+#[serde(default)]
 pub struct Players {
     max: i32,
     online: i32,
     sample: Vec<Player>,
+}
+
+impl Default for Players {
+    fn default() -> Self {
+        Players {
+            max: 0,
+            online: 0,
+            sample: vec![],
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

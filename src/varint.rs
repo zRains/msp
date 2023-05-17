@@ -1,6 +1,5 @@
-use std::{io::Read, net::TcpStream};
-
 use crate::MspErr;
+use std::{io::Read, net::TcpStream};
 
 const SEGMENT_BITS: u32 = 0x7F;
 const CHECKER_BIT: u8 = 0x80;

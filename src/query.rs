@@ -35,7 +35,7 @@ pub struct QueryFull {
     gametype: String,
     game_id: String,
     version: String,
-    plugins: String,
+    plugins: Vec<ModPlugin>,
     map: String,
     numplayers: String,
     maxplayers: String,
@@ -53,11 +53,21 @@ impl std::fmt::Display for QueryFull {
     }
 }
 
-// #[derive(Serialize, Debug)]
-// pub struct ModPlugin {
-//     mod_name: String,
-//     plugins: Vec<String>,
-// }
+#[derive(Serialize, Debug)]
+pub struct ModPlugin {
+    mod_name: String,
+    plugins: Vec<String>,
+}
+
+impl std::fmt::Display for ModPlugin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            serde_json::to_string_pretty(self).map_err(|_| std::fmt::Error)?
+        )
+    }
+}
 
 fn send_query_request(msp: &Msp, full_query: bool) -> Result<QueryReader, MspErr> {
     let udp_socket = create_udp_socket(Ipv4Addr::UNSPECIFIED, 8000)?;
@@ -196,18 +206,52 @@ pub fn query_full_status(msp: &Msp) -> Result<QueryFull, MspErr> {
     // Drop meaningless byte padding
     nt_str_reader.set_current_idx_forward(11);
 
-    let kv_map = nt_str_reader.read_kv()?;
+    // Plugin format: [SERVER_MOD_NAME[: PLUGIN_NAME(; PLUGIN_NAME...)]]
+    //
+    // TODO So far, there have been no cases of multiple mod plugins.
+    // Therefore, for now, we are considering a single mod plugin.
+    let resolve_plugin = |plugin_str: String| -> Result<Vec<ModPlugin>, MspErr> {
+        if plugin_str.len() == 0 {
+            return Ok(vec![]);
+        }
+
+        let mut result = Vec::new();
+        let plugin_collection = plugin_str.split(":").map(|x| x.trim()).collect::<Vec<_>>();
+
+        match plugin_collection.len() {
+            2 => {
+                result.push(ModPlugin {
+                    mod_name: plugin_collection[0].into(),
+                    plugins: plugin_collection[1]
+                        .split(";")
+                        .map(|x| x.trim().into())
+                        .collect::<Vec<_>>(),
+                });
+            }
+            1 => {
+                result.push(ModPlugin {
+                    mod_name: plugin_collection[0].into(),
+                    plugins: vec![],
+                });
+            }
+            _ => {
+                return Err(MspErr::DataErr("Multiple mod plugin formats have been detected. Please submit the server address to the issues section to help us improve.".into()));
+            }
+        };
+
+        Ok(result)
+    };
 
     Ok(QueryFull {
-        hostname: kv_map.get("hostname").unwrap_or(&"".into()).into(),
-        gametype: kv_map.get("gametype").unwrap_or(&"".into()).into(),
-        game_id: kv_map.get("game_id").unwrap_or(&"".into()).into(),
-        version: kv_map.get("version").unwrap_or(&"".into()).into(),
-        plugins: kv_map.get("plugins").unwrap_or(&"".into()).into(),
-        map: kv_map.get("map").unwrap_or(&"".into()).into(),
-        numplayers: kv_map.get("numplayers").unwrap_or(&"".into()).into(),
-        maxplayers: kv_map.get("maxplayers").unwrap_or(&"".into()).into(),
-        hostport: kv_map.get("hostport").unwrap_or(&"".into()).into(),
-        hostip: kv_map.get("hostip").unwrap_or(&"".into()).into(),
+        hostname: nt_str_reader.read_kv()?.1,
+        gametype: nt_str_reader.read_kv()?.1,
+        game_id: nt_str_reader.read_kv()?.1,
+        version: nt_str_reader.read_kv()?.1,
+        plugins: resolve_plugin(nt_str_reader.read_kv()?.1)?,
+        map: nt_str_reader.read_kv()?.1,
+        numplayers: nt_str_reader.read_kv()?.1,
+        maxplayers: nt_str_reader.read_kv()?.1,
+        hostport: nt_str_reader.read_kv()?.1,
+        hostip: nt_str_reader.read_kv()?.1,
     })
 }
