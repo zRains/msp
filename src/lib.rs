@@ -4,15 +4,28 @@ mod server;
 mod util;
 mod varint;
 
-use crate::util::create_tcp_socket;
 pub use error::MspErr;
+pub use query::{QueryBasic, QueryFull};
+use serde::Serialize;
+pub use server::{LanServer, LegacyServer, NettyServer, Server};
 use std::net::SocketAddrV4;
-use util::is_valid_port;
+use util::{create_tcp_socket, is_valid_port};
 
 /// Msp config struct
+#[derive(Serialize)]
 pub struct Msp {
     host: String,
     port: u16,
+}
+
+impl std::fmt::Display for Msp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            serde_json::to_string_pretty(self).map_err(|_| std::fmt::Error)?
+        )
+    }
 }
 
 impl Msp {
@@ -77,11 +90,5 @@ impl Msp {
 
     pub fn query_full(&self) -> Result<query::QueryFull, MspErr> {
         query::query_full_status(self)
-    }
-}
-
-impl std::fmt::Display for Msp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}", self.host, self.port)
     }
 }
