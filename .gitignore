@@ -4,7 +4,7 @@
 debug/
 target/
 
-
+**/*/.demo.json
 **/*.rs.bk
 *.pdb
 
