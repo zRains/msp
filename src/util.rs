@@ -13,7 +13,7 @@ pub fn get_server_current_time() -> Result<u64, MspErr> {
             match tm.cmp(&(u64::MAX as u128)) {
                 std::cmp::Ordering::Greater => {
                     return Err(MspErr::InternalErr(format!(
-                        "Current time is too large: {}",
+                        "Failed to obtain current time. It should not exceed u64::MAX, but got: {}",
                         tm
                     )));
                 }
