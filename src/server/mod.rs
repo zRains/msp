@@ -1,3 +1,4 @@
+mod bedrock_server;
 mod lan_server;
 mod legacy_server;
 mod netty_server;
@@ -7,6 +8,7 @@ use crate::{
     varint::{decode_varint_from_socket, encode_varint},
     Msp, MspErr,
 };
+pub use bedrock_server::*;
 pub use lan_server::*;
 pub use legacy_server::*;
 pub use netty_server::*;

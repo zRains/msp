@@ -5,12 +5,12 @@ use crate::{
 use serde::Serialize;
 use std::io::{Read, Write};
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct LegacyServer {
     protocol_version: i32,
     server_version: String,
     motd: String,
-    online_palyers: i32,
+    online_players: i32,
     max_players: i32,
 }
 
@@ -24,10 +24,10 @@ impl std::fmt::Display for LegacyServer {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct LegacyBetaServer {
     motd: String,
-    online_palyers: i32,
+    online_players: i32,
     max_players: i32,
 }
 
@@ -102,7 +102,7 @@ fn build_legacy_server(data: Vec<&str>) -> Result<LegacyServer, MspErr> {
         protocol_version: data[0].parse::<i32>()?,
         server_version: data[1].into(),
         motd: data[2].into(),
-        online_palyers: data[3].parse::<i32>()?,
+        online_players: data[3].parse::<i32>()?,
         max_players: data[4].parse::<i32>()?,
     })
 }
@@ -122,7 +122,7 @@ fn build_beta_legacy_server(data: Vec<&str>) -> Result<LegacyBetaServer, MspErr>
 
     Ok(LegacyBetaServer {
         motd: data[2].into(),
-        online_palyers: data[3].parse::<i32>()?,
+        online_players: data[3].parse::<i32>()?,
         max_players: data[4].parse::<i32>()?,
     })
 }

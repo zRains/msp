@@ -1,6 +1,9 @@
-use crate::{util::create_udp_socket, Msp, MspErr};
+use crate::{
+    util::{create_udp_socket, UdpReader},
+    Msp, MspErr,
+};
 use serde::Serialize;
-use std::net::{Ipv4Addr, UdpSocket};
+use std::net::Ipv4Addr;
 
 const TOKEN_MASK: i32 = 0x0F0F0F0F;
 const PENDDING_BUFS: [u8; 4] = [0x00, 0x00, 0x00, 0x00];
@@ -67,7 +70,7 @@ impl std::fmt::Display for ModPlugin {
     }
 }
 
-fn send_query_request(msp: &Msp, full_query: bool) -> Result<QueryReader, MspErr> {
+fn send_query_request(msp: &Msp, full_query: bool) -> Result<UdpReader, MspErr> {
     let udp_socket = create_udp_socket(Ipv4Addr::UNSPECIFIED, 8000)?;
     let mut bufs = [0u8; 17];
     // Construct init packet
@@ -132,7 +135,7 @@ fn send_query_request(msp: &Msp, full_query: bool) -> Result<QueryReader, MspErr
             }
 
             // Set Reader index to 5. We don't need Type and Session ID anymore.
-            Ok(QueryReader::create_with_idx(udp_socket, 5))
+            Ok(UdpReader::create_with_idx(udp_socket, 5))
         }
         Err(err) => Err(MspErr::InternalErr(err.to_string())),
     }
@@ -184,25 +187,25 @@ fn get_challenge_token(mut bufs: &mut [u8]) -> Result<(i32, i32), MspErr> {
 
 /// Get basic [status](https://wiki.vg/Query#Basic_stat)
 pub fn query_basic_status(msp: &Msp) -> Result<QueryBasic, MspErr> {
-    let mut nt_str_reader = send_query_request(msp, false)?;
+    let mut udp_reader = send_query_request(msp, false)?;
 
     Ok(QueryBasic {
-        motd: nt_str_reader.read_str()?,
-        game_type: nt_str_reader.read_str()?,
-        map: nt_str_reader.read_str()?,
-        numplayers: nt_str_reader.read_str()?,
-        maxplayers: nt_str_reader.read_str()?,
-        hostport: nt_str_reader.read_port()?,
-        hostip: nt_str_reader.read_str()?,
+        motd: udp_reader.read_nt_str()?,
+        game_type: udp_reader.read_nt_str()?,
+        map: udp_reader.read_nt_str()?,
+        numplayers: udp_reader.read_nt_str()?,
+        maxplayers: udp_reader.read_nt_str()?,
+        hostport: u16::from_be_bytes([udp_reader.read(true)?, udp_reader.read(true)?]),
+        hostip: udp_reader.read_nt_str()?,
     })
 }
 
 /// Get full [status](https://wiki.vg/Query#Full_stat)
 pub fn query_full_status(msp: &Msp) -> Result<QueryFull, MspErr> {
-    let mut nt_str_reader = send_query_request(msp, true)?;
+    let mut udp_reader = send_query_request(msp, true)?;
 
     // Drop meaningless byte padding
-    nt_str_reader.set_current_idx_forward(11);
+    udp_reader.set_current_idx_forward(11);
 
     // Plugin format: [SERVER_MOD_NAME[: PLUGIN_NAME(; PLUGIN_NAME...)]]
     //
@@ -241,168 +244,21 @@ pub fn query_full_status(msp: &Msp) -> Result<QueryFull, MspErr> {
     };
 
     Ok(QueryFull {
-        hostname: nt_str_reader.read_kv()?.1,
-        gametype: nt_str_reader.read_kv()?.1,
-        game_id: nt_str_reader.read_kv()?.1,
-        version: nt_str_reader.read_kv()?.1,
-        plugins: resolve_plugin(nt_str_reader.read_kv()?.1)?,
-        map: nt_str_reader.read_kv()?.1,
-        numplayers: nt_str_reader.read_kv()?.1,
-        maxplayers: nt_str_reader.read_kv()?.1,
-        hostport: nt_str_reader.read_kv()?.1,
-        hostip: nt_str_reader.read_kv()?.1,
+        hostname: udp_reader.read_nt_kv()?.1,
+        gametype: udp_reader.read_nt_kv()?.1,
+        game_id: udp_reader.read_nt_kv()?.1,
+        version: udp_reader.read_nt_kv()?.1,
+        plugins: resolve_plugin(udp_reader.read_nt_kv()?.1)?,
+        map: udp_reader.read_nt_kv()?.1,
+        numplayers: udp_reader.read_nt_kv()?.1,
+        maxplayers: udp_reader.read_nt_kv()?.1,
+        hostport: udp_reader.read_nt_kv()?.1,
+        hostip: udp_reader.read_nt_kv()?.1,
         players: {
             // Because there are two null-terminated tokens at the end of the KV section,
             // only one was consumed previously.
-            nt_str_reader.set_current_idx_forward(10 + 1);
-            nt_str_reader.read_str_group()?
+            udp_reader.set_current_idx_forward(10 + 1);
+            udp_reader.read_nt_str_group()?
         },
     })
-}
-
-pub struct QueryReader {
-    socket: UdpSocket,
-    current_idx: usize,
-}
-
-impl QueryReader {
-    pub fn create_with_idx(socket: UdpSocket, current_idx: usize) -> Self {
-        Self {
-            socket,
-            current_idx,
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn set_current_idx(&mut self, idx: usize) {
-        self.current_idx = idx;
-    }
-
-    pub fn set_current_idx_forward(&mut self, idx: usize) {
-        self.current_idx += idx;
-    }
-
-    #[allow(dead_code)]
-    pub fn set_current_idx_retreat(&mut self, idx: usize) -> Result<(), MspErr> {
-        if self.current_idx < idx {
-            return Err(MspErr::DataErr(format!(
-                "retreat({}) cannot be greater than current index({})",
-                idx, self.current_idx
-            )));
-        }
-
-        self.current_idx -= idx;
-
-        Ok(())
-    }
-
-    pub fn read(&mut self, consume: bool) -> Result<u8, MspErr> {
-        let mut bufs = vec![0u8; self.current_idx + 1];
-
-        match self.socket.peek(&mut bufs) {
-            Ok(_) => {
-                if consume {
-                    self.current_idx += 1;
-                }
-
-                match bufs.last() {
-                    Some(&buf) => Ok(buf),
-                    None => {
-                        return Err(MspErr::DataErr("Incomplete data".into()));
-                    }
-                }
-            }
-            Err(err) => Err(MspErr::IoErr(err)),
-        }
-    }
-
-    pub fn read_port(&mut self) -> Result<u16, MspErr> {
-        Ok(u16::from_be_bytes([self.read(true)?, self.read(true)?]))
-    }
-
-    pub fn read_str(&mut self) -> Result<String, MspErr> {
-        let mut result = Vec::new();
-
-        loop {
-            let buf = self.read(true)?;
-            // Compatible with special characters: § © ®...
-            //
-            // FIXME This is only intended to address situations where the server.properties
-            // file is not properly formatted, and it does not cover all special characters
-            // larger than one byte. For more details, please refer to
-            // [UTF-8 encoding table and Unicode characters](https://www.utf8-chartable.de/unicode-utf8-table.pl)
-            match buf {
-                // Check the Null-terminated string
-                0x00 => break,
-                special_buf
-                    if special_buf >= 0x80
-                        && 0xBF >= special_buf
-                        && result.last() != Some(&0xC2) =>
-                {
-                    result.append(&mut vec![0xC2, special_buf]);
-                }
-                common_buf => result.push(common_buf),
-            }
-        }
-
-        Ok(String::from_utf8_lossy(result.as_slice()).into())
-    }
-
-    pub fn read_str_group(&mut self) -> Result<Vec<String>, MspErr> {
-        let mut result = Vec::new();
-        let mut str_group = Vec::<String>::new();
-
-        loop {
-            let buf = self.read(true)?;
-
-            match buf {
-                0x00 => {
-                    let next_buf = self.read(true)?;
-
-                    if next_buf == 0x00 {
-                        break;
-                    }
-
-                    str_group.push(String::from_utf8_lossy(result.as_slice()).into());
-                    result.clear();
-                    result.push(next_buf);
-                }
-                common_buf => result.push(common_buf),
-            }
-        }
-
-        Ok(str_group)
-    }
-
-    pub fn read_kv(&mut self) -> Result<(String, String), MspErr> {
-        let mut result = Vec::new();
-        let mut kv: (Option<String>, Option<String>) = (None, None);
-
-        loop {
-            let buf = self.read(true)?;
-
-            match buf {
-                0x00 => {
-                    if kv.0.is_none() {
-                        kv.0 = Some(String::from_utf8_lossy(result.as_slice()).into());
-                        result.clear();
-                        continue;
-                    }
-
-                    kv.1 = Some(String::from_utf8_lossy(result.as_slice()).into());
-                    break;
-                }
-                special_buf
-                    if special_buf >= 0x80
-                        && 0xBF >= special_buf
-                        && result.last() != Some(&0xC2) =>
-                {
-                    result.append(&mut vec![0xC2, special_buf]);
-                }
-                common_buf => result.push(common_buf),
-            }
-        }
-
-        Ok((kv.0.unwrap_or("".into()), kv.1.unwrap_or("".into())))
-    }
 }

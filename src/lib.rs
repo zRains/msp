@@ -7,7 +7,7 @@ mod varint;
 pub use error::MspErr;
 pub use query::{QueryBasic, QueryFull};
 use serde::Serialize;
-pub use server::{LanServer, LegacyBetaServer, LegacyServer, NettyServer, Server};
+pub use server::{BedrockServer, LanServer, LegacyBetaServer, LegacyServer, NettyServer, Server};
 use std::net::{SocketAddr, SocketAddrV4, ToSocketAddrs};
 use util::{create_tcp_socket, is_valid_port};
 
@@ -40,7 +40,7 @@ impl Msp {
     /// Create Msp with default port(25565).
     pub fn create(host: &str) -> Self {
         Self {
-            host: host.into(),
+            host: host.trim().into(),
             port: 25565,
         }
     }
@@ -55,7 +55,7 @@ impl Msp {
         }
 
         Ok(Self {
-            host: host.into(),
+            host: host.trim().into(),
             port,
         })
     }
@@ -105,5 +105,9 @@ impl Msp {
 
     pub fn query_full(&self) -> Result<QueryFull, MspErr> {
         query::query_full_status(self)
+    }
+
+    pub fn get_bedrock_server_status(&self) -> Result<BedrockServer, MspErr> {
+        server::get_bedrock_server_status(self)
     }
 }
