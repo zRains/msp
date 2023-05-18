@@ -12,7 +12,7 @@
 
 **Java Edition:** 适用于 1.4 版本及以上的服务端（[Protocol version number](https://wiki.vg/Protocol_version_numbers) >= 47）。
 
-**Bedrock:** 适用于现代 Bedrock 服务器（1.16.220 及以上）。
+**Bedrock Edition:** 适用于现代 Bedrock 服务器（1.16.220 及以上）。
 
 ### 支持协议
 
@@ -21,8 +21,8 @@
 - [x] [Legacy Server Ping](https://wiki.vg/Server_List_Ping#1.4_to_1.5) 适用于老版本服务器（1.4 ~ 1.5）。
 - [x] [Beta Legacy Server Ping](https://wiki.vg/Server_List_Ping#Beta_1.8_to_1.3) 适用于上古版本服务器（Beta 1.8 ~ 1.3）。
 - [x] [Ping via LAN](https://wiki.vg/Server_List_Ping#Ping_via_LAN_.28Open_to_LAN_in_Singleplayer.29) 局域网发现协议。
-- [x] [Query Protocol](https://wiki.vg/Query) 适用于现代 Java Edition 服务端（1.9pre4 及后续版本可用），适用此协议需要服务端开启响应功能。
 - [x] [Raknet Protocol](https://wiki.vg/Raknet_Protocol) 适用于现代 Bedrock 服务器。
+- [x] [Query Protocol](https://wiki.vg/Query) 适用于现代 Java Edition 服务端（1.9pre4 及后续版本可用），适用此协议需要服务端开启响应功能。
 
 ### 使用
 
