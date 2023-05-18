@@ -7,8 +7,8 @@ mod varint;
 pub use error::MspErr;
 pub use query::{QueryBasic, QueryFull};
 use serde::Serialize;
-pub use server::{LanServer, LegacyServer, NettyServer, Server};
-use std::net::SocketAddrV4;
+pub use server::{LanServer, LegacyBetaServer, LegacyServer, NettyServer, Server};
+use std::net::{SocketAddr, SocketAddrV4, ToSocketAddrs};
 use util::{create_tcp_socket, is_valid_port};
 
 /// Msp config struct
@@ -16,6 +16,14 @@ use util::{create_tcp_socket, is_valid_port};
 pub struct Msp {
     host: String,
     port: u16,
+}
+
+impl ToSocketAddrs for Msp {
+    type Iter = std::vec::IntoIter<SocketAddr>;
+
+    fn to_socket_addrs(&self) -> std::io::Result<Self::Iter> {
+        (&*self.host, self.port).to_socket_addrs()
+    }
 }
 
 impl std::fmt::Display for Msp {
@@ -40,7 +48,10 @@ impl Msp {
     /// Create Msp using a custom port.
     pub fn create_with_port(host: &str, port: u16) -> Result<Self, MspErr> {
         if !is_valid_port(port) {
-            return Err(MspErr::DataErr(format!("Invalid port: {}", port)));
+            return Err(MspErr::DataErr(format!(
+                "Invalid port: {}, expected between 1024 and 65535",
+                port
+            )));
         }
 
         Ok(Self {
@@ -68,27 +79,31 @@ impl Msp {
         })
     }
 
-    pub fn get_server_status(&self) -> Result<server::Server, MspErr> {
+    pub fn get_server_status(&self) -> Result<Server, MspErr> {
         server::get_server_status(self)
     }
 
-    pub fn get_netty_server_status(&self) -> Result<server::NettyServer, MspErr> {
+    pub fn get_netty_server_status(&self) -> Result<NettyServer, MspErr> {
         server::get_netty_server_status(self)
     }
 
-    pub fn get_legacy_server_status(&self) -> Result<server::LegacyServer, MspErr> {
+    pub fn get_legacy_server_status(&self) -> Result<LegacyServer, MspErr> {
         server::get_legacy_server_status(self)
     }
 
-    pub fn get_lan_server_status() -> Result<Vec<server::LanServer>, MspErr> {
+    pub fn get_beta_legacy_server_status(&self) -> Result<LegacyBetaServer, MspErr> {
+        server::get_beta_legacy_server_status(self)
+    }
+
+    pub fn get_lan_server_status() -> Result<Vec<LanServer>, MspErr> {
         server::get_lan_server_status()
     }
 
-    pub fn query(&self) -> Result<query::QueryBasic, MspErr> {
+    pub fn query(&self) -> Result<QueryBasic, MspErr> {
         query::query_basic_status(self)
     }
 
-    pub fn query_full(&self) -> Result<query::QueryFull, MspErr> {
+    pub fn query_full(&self) -> Result<QueryFull, MspErr> {
         query::query_full_status(self)
     }
 }

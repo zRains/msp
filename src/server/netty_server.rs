@@ -1,11 +1,11 @@
-use super::{legacy_server::legacy_server_response_process, LegacyServer};
+use super::{process_legacy_server_bufs, LegacyServer};
 use crate::{create_tcp_socket, Msp, MspErr};
 use std::io::{Read, Write};
 
 pub type NettyServer = LegacyServer;
 
 pub fn get_netty_server_status(msp: &Msp) -> Result<NettyServer, MspErr> {
-    let mut socket = create_tcp_socket(msp.to_string())?;
+    let mut socket = create_tcp_socket(msp)?;
     let mut packet_data = Vec::<u8>::new();
     let host_u16 = msp.host.encode_utf16().collect::<Vec<_>>();
 
@@ -26,12 +26,11 @@ pub fn get_netty_server_status(msp: &Msp) -> Result<NettyServer, MspErr> {
     );
     // Server port
     packet_data.append(&mut (msp.port as u32).to_be_bytes().to_vec());
-
     socket.write(&mut vec![0xFE, 0x01])?;
 
     let mut bufs = Vec::new();
 
     socket.read_to_end(&mut bufs)?;
 
-    legacy_server_response_process(bufs)
+    process_legacy_server_bufs(bufs.as_slice())
 }

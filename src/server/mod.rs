@@ -8,7 +8,7 @@ use crate::{
     Msp, MspErr,
 };
 pub use lan_server::*;
-pub use legacy_server::{get_legacy_server_status, LegacyServer};
+pub use legacy_server::*;
 pub use netty_server::*;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -155,7 +155,7 @@ struct ForgeChannel {
 }
 
 pub fn get_server_status(msp: &Msp) -> Result<Server, MspErr> {
-    let mut socket = create_tcp_socket(msp.to_string())?;
+    let mut socket = create_tcp_socket(msp)?;
     let hand_shake_packet = build_handshake_packet(&msp);
     let status_request_packet = build_status_request_packet();
 

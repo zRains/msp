@@ -30,3 +30,9 @@ impl From<std::time::SystemTimeError> for MspErr {
         MspErr::InternalErr(err.to_string())
     }
 }
+
+impl From<std::num::ParseIntError> for MspErr {
+    fn from(err: std::num::ParseIntError) -> Self {
+        MspErr::InternalErr(err.to_string())
+    }
+}
