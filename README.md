@@ -1,6 +1,6 @@
 # Msp (alpha)
 
-![license](https://flat.badgen.net/badge/license/MIT/blue) ![version](https://flat.badgen.net/crates/v/msp) ![download](https://flat.badgen.net/crates/d/msp) ![issues](https://flat.badgen.net/github/issues/zrains/msp)
+![license](https://flat.badgen.net/badge/license/MIT/blue) ![version](https://flat.badgen.net/crates/v/msp) ![download](https://flat.badgen.net/crates/d/msp)
 
 > WIP: 目前，它处于 alpha 阶段。它已可以正常使用，但配置和功能 API 在次要版本发布之间仍可能发生变化。
 
@@ -19,6 +19,8 @@
 - [x] [Server List Ping](https://wiki.vg/Server_List_Ping) 适用于大部分现代服务器（1.7+）。
 - [x] [Netty Server Ping](https://wiki.vg/Server_List_Ping#1.6) 适用于 1.6 及之后的服务器。
 - [x] [Legacy Server Ping](https://wiki.vg/Server_List_Ping#1.4_to_1.5) 适用于老版本服务器（1.4 ~ 1.5）。
+- [x] [Beta Legacy Server Ping](https://wiki.vg/Server_List_Ping#Beta_1.8_to_1.3) 适用于上古版本服务器（Beta 1.8 ~ 1.3）。
+- [Ping via LAN](https://wiki.vg/Server_List_Ping#Ping_via_LAN_.28Open_to_LAN_in_Singleplayer.29) 局域网发现协议。
 - [x] [Query Protocol](https://wiki.vg/Query) 适用于现代 Java Edition 服务端（1.9pre4 及后续版本可用），适用此协议需要服务端开启响应功能。
 
 ### 使用
