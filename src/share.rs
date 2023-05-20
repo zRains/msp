@@ -44,10 +44,6 @@ pub fn create_udp_socket(socket_conf: &SocketConf) -> Result<UdpSocket, MspErr> 
     Ok(socket)
 }
 
-pub fn is_valid_port(port: u16) -> bool {
-    return port >= 1024;
-}
-
 pub fn bufs_to_utf16_str(bufs: &[u8]) -> Result<String, MspErr> {
     if bufs.len() % 2 != 0 {
         return Err(MspErr::DataErr(format!(

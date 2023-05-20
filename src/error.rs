@@ -1,8 +1,13 @@
+/// Msp error uniform error definition.
 #[derive(Debug)]
 pub enum MspErr {
+    /// Unintended errors occur when processing data.
     DataErr(String),
+    /// Internal errors sent, including type conversion, string analysis, etc.
     InternalErr(String),
+    /// Unimplemented features.
     NoImpl(String),
+    /// Handling errors that occur during sockets.
     IoErr(std::io::Error),
 }
 

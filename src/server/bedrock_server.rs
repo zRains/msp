@@ -5,26 +5,48 @@ use crate::{
     share::{create_udp_socket, UdpReader},
     MspErr,
 };
-use std::net::Ipv4Addr;
 
 const MAGIC_BYTES: &[u8] = &[
     0x00, 0xFF, 0xFF, 0x00, 0xFE, 0xFE, 0xFE, 0xFE, 0xFD, 0xFD, 0xFD, 0xFD, 0x12, 0x34, 0x56, 0x78,
 ];
 
+/// Bedrock server info type.
+///
+/// For the meaning of `motd_line_1` and `motd_line_2` refer to the following examples and images:
+///
+/// ```text
+/// motd_line_1 = "Dedicated Server"
+/// motd_line_2 = "Bedrock level"
+/// ```
+/// Result:
+///
+/// <img src="https://wiki.vg/images/b/bb/Server_ID_String_Example.png" alt="Server ID String Example.png" />
 #[derive(Serialize, Debug)]
 pub struct BedrockServer {
-    edition: String,
-    motd_line_1: String,
-    protocol_version: i32,
-    version_name: String,
-    online_players: i32,
-    max_players: i32,
-    server_id: String,
-    motd_line_2: String,
-    game_mode: String,
-    game_mode_id: u8,
-    port_ipv4: u16,
-    port_ipv6: u16,
+    /// MCPE or MCEE(Education Edition) for Education Edition
+    pub edition: String,
+    /// MOTD line 1 for upstream display.
+    pub motd_line_1: String,
+    /// Protocol version.
+    pub protocol_version: i32,
+    /// Version name.
+    pub version_name: String,
+    /// Online players.
+    pub online_players: i32,
+    /// Max players.
+    pub max_players: i32,
+    /// Server unique id.
+    pub server_id: String,
+    /// MOTD line 2 for downstream display.
+    pub motd_line_2: String,
+    /// Game mode.
+    pub game_mode: String,
+    /// Game mode id.
+    pub game_mode_id: u8,
+    /// Ports required to connect to the server using IPv4.
+    pub port_ipv4: u16,
+    /// Ports required to connect to the server using IPv6.
+    pub port_ipv6: u16,
 }
 
 impl std::fmt::Display for BedrockServer {

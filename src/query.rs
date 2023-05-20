@@ -4,20 +4,28 @@ use crate::{
     MspErr,
 };
 use serde::Serialize;
-use std::net::Ipv4Addr;
 
 const TOKEN_MASK: i32 = 0x0F0F0F0F;
 const PENDDING_BUFS: [u8; 4] = [0x00, 0x00, 0x00, 0x00];
 
+/// [Basic stat](https://wiki.vg/Query#Basic_stat) in [Query](https://wiki.vg/Query) protocol.
 #[derive(Serialize, Debug)]
 pub struct QueryBasic {
-    motd: String,
-    game_type: String,
-    map: String,
-    numplayers: String,
-    maxplayers: String,
-    hostport: u16,
-    hostip: String,
+    /// MOTD of the target server.
+    pub motd: String,
+    /// Game type. These include the following models:
+    /// SMP(Survival Multiplayer) | CREATIVE | ADVENTURE | SPECTATOR | HARDCORE.
+    pub game_type: String,
+    /// Game map.
+    pub map: String,
+    /// Online players. `numplayers` corresponding to the return field of the original protocol.
+    pub online_players: String,
+    /// Max players.
+    pub maxplayers: String,
+    /// Server port. `hostport` corresponding to the return field of the original protocol.
+    pub port: u16,
+    /// Server ip. `hostip` corresponding to the return field of the original protocol.
+    pub ip: String,
 }
 
 impl std::fmt::Display for QueryBasic {
@@ -30,19 +38,31 @@ impl std::fmt::Display for QueryBasic {
     }
 }
 
+/// [Full stat](https://wiki.vg/Query#Full_stat) in [Query](https://wiki.vg/Query) protocol.
 #[derive(Serialize, Debug)]
 pub struct QueryFull {
-    hostname: String,
-    gametype: String,
-    game_id: String,
-    version: String,
-    plugins: Vec<ModPlugin>,
-    map: String,
-    numplayers: String,
-    maxplayers: String,
-    hostport: String,
-    hostip: String,
-    players: Vec<String>,
+    /// Server host.
+    pub hostname: String,
+    /// Game type. Refer to [QueryBasic] for details on what types are included.
+    pub gametype: String,
+    /// Hardcoded to MINECRAFT.
+    pub game_id: String,
+    /// Server version
+    pub version: String,
+    /// List of plugins, not used by the vanilla server, where it is an empty string.
+    pub plugins: Vec<ModPlugin>,
+    /// Game map.
+    pub map: String,
+    /// Online players. `numplayers` corresponding to the return field of the original protocol.
+    pub online_players: String,
+    /// Max players.
+    pub maxplayers: String,
+    /// Server port. `hostport` corresponding to the return field of the original protocol.
+    pub port: String,
+    /// Server ip. `hostip` corresponding to the return field of the original protocol.
+    pub ip: String,
+    /// Players name list.
+    pub players: Vec<String>,
 }
 
 impl std::fmt::Display for QueryFull {
@@ -142,8 +162,7 @@ fn send_query_request(conf: &Conf, full_query: bool) -> Result<UdpReader, MspErr
     }
 }
 
-/// Process query handshake response [packet](https://wiki.vg/Query#Response),
-/// and get challenge token.
+/// Process query handshake response [packet](https://wiki.vg/Query#Response), and get challenge token.
 fn get_challenge_token(mut bufs: &mut [u8]) -> Result<(i32, i32), MspErr> {
     // Remove the 0 element at the end of the array
     let mut buf_len = bufs.len();
@@ -194,10 +213,10 @@ pub fn query_basic_status(conf: &Conf) -> Result<QueryBasic, MspErr> {
         motd: udp_reader.read_nt_str()?,
         game_type: udp_reader.read_nt_str()?,
         map: udp_reader.read_nt_str()?,
-        numplayers: udp_reader.read_nt_str()?,
+        online_players: udp_reader.read_nt_str()?,
         maxplayers: udp_reader.read_nt_str()?,
-        hostport: u16::from_be_bytes([udp_reader.read(true)?, udp_reader.read(true)?]),
-        hostip: udp_reader.read_nt_str()?,
+        port: u16::from_be_bytes([udp_reader.read(true)?, udp_reader.read(true)?]),
+        ip: udp_reader.read_nt_str()?,
     })
 }
 
@@ -251,10 +270,10 @@ pub fn query_full_status(conf: &Conf) -> Result<QueryFull, MspErr> {
         version: udp_reader.read_nt_kv()?.1,
         plugins: resolve_plugin(udp_reader.read_nt_kv()?.1)?,
         map: udp_reader.read_nt_kv()?.1,
-        numplayers: udp_reader.read_nt_kv()?.1,
+        online_players: udp_reader.read_nt_kv()?.1,
         maxplayers: udp_reader.read_nt_kv()?.1,
-        hostport: udp_reader.read_nt_kv()?.1,
-        hostip: udp_reader.read_nt_kv()?.1,
+        port: udp_reader.read_nt_kv()?.1,
+        ip: udp_reader.read_nt_kv()?.1,
         players: {
             // Because there are two null-terminated tokens at the end of the KV section,
             // only one was consumed previously.

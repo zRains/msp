@@ -6,8 +6,6 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-// Unsigned Short ref to u16 in rust.
-
 const MULTICAST_ADDR: Ipv4Addr = Ipv4Addr::new(224, 0, 2, 60);
 const MULTICAST_PORT: u16 = 4445;
 const MAXIMUM_SERVERS: usize = 100;
@@ -15,11 +13,15 @@ const BROADCAST_MUST_CONTAIN: [&'static str; 4] = ["[MOTD]", "[/MOTD]", "[AD]", 
 const SERVER_OFFLINE_TIMEOUT: u64 = 2000;
 const STORE_CHECK_INTERVAL: u64 = 4000;
 
+/// LAN server info structure.
 #[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct LanServer {
-    addr: SocketAddrV4,
-    motd: String,
-    port: u16,
+    /// SocketAddrV4 information for the target server from `recv_from`.
+    pub addr: SocketAddrV4,
+    /// MOTD of the target server.
+    pub motd: String,
+    /// Open port of the target server.
+    pub port: u16,
 }
 
 impl LanServer {
@@ -44,6 +46,25 @@ impl std::fmt::Display for LanServer {
     }
 }
 
+/// Get the host information of other open servers in the current LAN.
+///
+/// Currently, it only prints the host information cyclically, and does not return [LanServer] information.
+///
+/// # TODO
+///
+/// Get host information for a period of time by passing in duration control.
+///
+/// # Example
+///
+/// ```no_run
+/// use msp::{get_lan_server_status, MspErr, SocketConf};
+///
+/// fn main() -> Result<(), MspErr> {
+///    let info =  get_lan_server_status(&SocketConf::default())?;
+///
+///     Ok(())
+/// }
+/// ```
 pub fn get_lan_server_status(socket_conf: &SocketConf) -> Result<Vec<LanServer>, MspErr> {
     let mut lan_server_map = HashMap::<LanServer, SystemTime>::new();
     let mut buffer = [0u8; 256];

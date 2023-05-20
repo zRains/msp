@@ -2,6 +2,7 @@ use super::{process_legacy_server_bufs, LegacyServer};
 use crate::{conf::Conf, share::create_tcp_socket, MspErr};
 use std::io::{Read, Write};
 
+/// The alias of [LegacyServer] is identical in content.
 pub type NettyServer = LegacyServer;
 
 pub fn get_netty_server_status(conf: &Conf) -> Result<NettyServer, MspErr> {

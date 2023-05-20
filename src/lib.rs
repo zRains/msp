@@ -8,13 +8,13 @@ A fast, lightweight, stable, and feature-rich Minecraft Server Protocol client i
 Offering efficient type exporting and error feedback. It enables retrieving
 server status using various protocols and returns strongly-typed JSON data.
 
-### Applicable version.
+### Applicable version
 Supports Java Edition and Bedrock Edition servers. The applicable version range is as follows.
 
 - **Java Edition:** Suitable for server versions 1.4 and above ([Protocol version number](https://wiki.vg/Protocol_version_numbers) >= 47).
 - **Bedrock Edition:** Suitable for modern Bedrock servers (1.16.220 and above).
 
-### Supported protocols.
+### Supported protocols
 
 Server Information Query Protocol covering most versions, with certain protocols requiring the server to enable corresponding features.
 
@@ -22,7 +22,7 @@ Server Information Query Protocol covering most versions, with certain protocols
 - [Netty Server Ping](https://wiki.vg/Server_List_Ping#1.6) Suitable for servers 1.6 and later.
 - [Legacy Server Ping](https://wiki.vg/Server_List_Ping#1.4_to_1.5) Suitable for older versions of servers (1.4 to 1.5).
 - [Beta Legacy Server Ping](https://wiki.vg/Server_List_Ping#Beta_1.8_to_1.3) Suitable for ancient versions of servers (Beta 1.8 to 1.3).
-- [Ping via LAN](https://wiki.vg/Server_List_Ping#Ping_via_LAN_.28Open_to_LAN_in_Singleplayer.29) Local Area Network Game Console Discovery Protocol.
+- [Ping via LAN](https://wiki.vg/Server_List_Ping#Ping_via_LAN_.28Open_to_LAN_in_Singleplayer.29) LAN Server Discovery Protocol.
 - [Raknet Protocol](https://wiki.vg/Raknet_Protocol) Applicable to modern Bedrock servers.
 - [Query Protocol](https://wiki.vg/Query) Applicable to modern Java Edition servers (available from version 1.9pre4 onwards).
 
@@ -34,7 +34,7 @@ Server Information Query Protocol covering most versions, with certain protocols
 cargo add msp
 ```
 
-Or, add this dependency to the `Cargo.toml` file:
+Or, add this dependency to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
@@ -47,11 +47,11 @@ Here are some basic examples showcased below.
 
 1. Use [Conf::get_server_status] to retrieve server information, return [Server]. Note that older versions are not supported:
 
-```
+```no_run
 use msp::{Conf, MspErr, Server};
 
 fn main() -> Result<(), MspErr> {
-    let server = Conf::create_with_port("www.example.com", 25565)?;
+    let server = Conf::create_with_port("www.example.com", 25565);
     let info: Server = server.get_server_status()?;
 
     println!("{}", info);
@@ -62,12 +62,12 @@ fn main() -> Result<(), MspErr> {
 
 2. Use [Conf::create_with_port] to create a connection configuration specifying the port:
 
-```
+```no_run
 use msp::{Conf, MspErr, Server};
 
 fn main() -> Result<(), MspErr> {
-    let server = Conf::create_with_port("www.example.com", 25566)?;
-    let info: Conf::Server = server.get_server_status()?;
+    let server = Conf::create_with_port("www.example.com", 25565);
+    let info: Server = server.get_server_status()?;
 
     println!("{}", info);
 
@@ -77,11 +77,11 @@ fn main() -> Result<(), MspErr> {
 
 3. Use [get_lan_server_status] to retrieve LAN online hosts:
 
-```
-use msp::{get_lan_server_status, MspErr};
+```no_run
+use msp::{get_lan_server_status, MspErr, SocketConf};
 
 fn main() -> Result<(), MspErr> {
-    get_lan_server_status()?;
+    get_lan_server_status(&SocketConf::default())?;
 
     Ok(())
 }
@@ -89,11 +89,11 @@ fn main() -> Result<(), MspErr> {
 
 4. Use [Conf::query_full] to retrieve server information using the Query protocol:
 
-```
+```no_run
 use msp::{Conf, MspErr};
 
 fn main() -> Result<(), MspErr> {
-    let server = Conf::create_with_port("www.example.com", 25565)?;
+    let server = Conf::create_with_port("www.example.com", 25565);
 
     println!("{}", server.query_full()?);
 

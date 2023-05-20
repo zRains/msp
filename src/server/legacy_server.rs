@@ -6,13 +6,19 @@ use crate::{
 use serde::Serialize;
 use std::io::{Read, Write};
 
+/// Legacy server info type.
 #[derive(Serialize, Debug)]
 pub struct LegacyServer {
-    protocol_version: i32,
-    server_version: String,
-    motd: String,
-    online_players: i32,
-    max_players: i32,
+    /// Protocol version.
+    pub protocol_version: i32,
+    /// Server version.
+    pub server_version: String,
+    /// MOTD of the target server.
+    pub motd: String,
+    /// Online players.
+    pub online_players: i32,
+    /// Max players.
+    pub max_players: i32,
 }
 
 impl std::fmt::Display for LegacyServer {
@@ -25,11 +31,17 @@ impl std::fmt::Display for LegacyServer {
     }
 }
 
+/// Legacy beta server info type.
+///
+/// A server older than Legacy, used by not many people anymore.
 #[derive(Serialize, Debug)]
 pub struct LegacyBetaServer {
-    motd: String,
-    online_players: i32,
-    max_players: i32,
+    /// MOTD of the target server.
+    pub motd: String,
+    /// Online players.
+    pub online_players: i32,
+    /// Max players.
+    pub max_players: i32,
 }
 
 impl std::fmt::Display for LegacyBetaServer {
