@@ -7,7 +7,7 @@ description = "Fast and lightweight Minecraft Server protocol client implemented
 keywords = ["minecraft", "protocol", "lightweight"]
 categories = ["command-line-utilities", "game", "value-formatting"]
 homepage = "https://github.com/zRains/msp"
-documentation = "https://github.com/zRains/msp#readme"
+documentation = "https://docs.rs"
 repository = "https://github.com/zRains/msp"
 readme = "README.md"
 
