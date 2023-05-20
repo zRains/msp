@@ -1,113 +1,134 @@
+/*!
+A fast, lightweight, stable, and feature-rich Minecraft Server Protocol client implemented in Rust.
+
+<img src="https://flat.badgen.net/badge/license/MIT/blue" alt="license" />
+<img src="https://flat.badgen.net/crates/v/msp" alt="version" />
+<img src="https://flat.badgen.net/crates/d/msp" alt="download" />
+
+Offering efficient type exporting and error feedback. It enables retrieving
+server status using various protocols and returns strongly-typed JSON data.
+
+### Applicable version.
+Supports Java Edition and Bedrock Edition servers. The applicable version range is as follows.
+
+- **Java Edition:** Suitable for server versions 1.4 and above ([Protocol version number](https://wiki.vg/Protocol_version_numbers) >= 47).
+- **Bedrock Edition:** Suitable for modern Bedrock servers (1.16.220 and above).
+
+### Supported protocols.
+
+Server Information Query Protocol covering most versions, with certain protocols requiring the server to enable corresponding features.
+
+- [Server List Ping](https://wiki.vg/Server_List_Ping) Suitable for most modern servers (1.7+).
+- [Netty Server Ping](https://wiki.vg/Server_List_Ping#1.6) Suitable for servers 1.6 and later.
+- [Legacy Server Ping](https://wiki.vg/Server_List_Ping#1.4_to_1.5) Suitable for older versions of servers (1.4 to 1.5).
+- [Beta Legacy Server Ping](https://wiki.vg/Server_List_Ping#Beta_1.8_to_1.3) Suitable for ancient versions of servers (Beta 1.8 to 1.3).
+- [Ping via LAN](https://wiki.vg/Server_List_Ping#Ping_via_LAN_.28Open_to_LAN_in_Singleplayer.29) Local Area Network Game Console Discovery Protocol.
+- [Raknet Protocol](https://wiki.vg/Raknet_Protocol) Applicable to modern Bedrock servers.
+- [Query Protocol](https://wiki.vg/Query) Applicable to modern Java Edition servers (available from version 1.9pre4 onwards).
+
+### Usage
+
+1. To integrate it as a library into your own Rust project, run it in the root project directory.
+
+```bash
+cargo add msp
+```
+
+Or, add this dependency to the `Cargo.toml` file:
+
+```toml
+[dependencies]
+msp = "0.1.0"
+```
+
+### Examples
+
+Here are some basic examples showcased below.
+
+1. Use [Conf::get_server_status] to retrieve server information, return [Server]. Note that older versions are not supported:
+
+```
+use msp::{Conf, MspErr, Server};
+
+fn main() -> Result<(), MspErr> {
+    let server = Conf::create_with_port("www.example.com", 25565)?;
+    let info: Server = server.get_server_status()?;
+
+    println!("{}", info);
+
+    Ok(())
+}
+```
+
+2. Use [Conf::create_with_port] to create a connection configuration specifying the port:
+
+```
+use msp::{Conf, MspErr, Server};
+
+fn main() -> Result<(), MspErr> {
+    let server = Conf::create_with_port("www.example.com", 25566)?;
+    let info: Conf::Server = server.get_server_status()?;
+
+    println!("{}", info);
+
+    Ok(())
+}
+```
+
+3. Use [get_lan_server_status] to retrieve LAN online hosts:
+
+```
+use msp::{get_lan_server_status, MspErr};
+
+fn main() -> Result<(), MspErr> {
+    get_lan_server_status()?;
+
+    Ok(())
+}
+```
+
+4. Use [Conf::query_full] to retrieve server information using the Query protocol:
+
+```
+use msp::{Conf, MspErr};
+
+fn main() -> Result<(), MspErr> {
+    let server = Conf::create_with_port("www.example.com", 25565)?;
+
+    println!("{}", server.query_full()?);
+
+    Ok(())
+}
+```
+
+**Note:** To use this protocol, you need to enable the `enable-query` option on the server side.
+This option can be found in the `server.properties` file located in the root directory.
+Set it as follows:
+
+```toml
+enable-query=true
+query.port=25565 # Configure the port according to your specific situation
+```
+
+Make sure to save the changes and restart the server for the configuration to take effect.
+
+### License
+
+MIT.
+*/
+
+#![warn(missing_docs)]
+
+mod conf;
 mod error;
+mod lan;
 mod query;
 mod server;
-mod util;
+mod share;
 mod varint;
 
+pub use conf::{Conf, SocketConf};
 pub use error::MspErr;
+pub use lan::{get_lan_server_status, LanServer};
 pub use query::{QueryBasic, QueryFull};
-use serde::Serialize;
-pub use server::{BedrockServer, LanServer, LegacyBetaServer, LegacyServer, NettyServer, Server};
-use std::net::{SocketAddr, SocketAddrV4, ToSocketAddrs};
-use util::{create_tcp_socket, is_valid_port};
-
-/// Msp config struct
-#[derive(Serialize)]
-pub struct Msp {
-    host: String,
-    port: u16,
-}
-
-impl ToSocketAddrs for Msp {
-    type Iter = std::vec::IntoIter<SocketAddr>;
-
-    fn to_socket_addrs(&self) -> std::io::Result<Self::Iter> {
-        (&*self.host, self.port).to_socket_addrs()
-    }
-}
-
-impl std::fmt::Display for Msp {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            serde_json::to_string_pretty(self).map_err(|_| std::fmt::Error)?
-        )
-    }
-}
-
-impl Msp {
-    /// Create Msp with default port(25565).
-    pub fn create(host: &str) -> Self {
-        Self {
-            host: host.trim().into(),
-            port: 25565,
-        }
-    }
-
-    /// Create Msp using a custom port.
-    pub fn create_with_port(host: &str, port: u16) -> Result<Self, MspErr> {
-        if !is_valid_port(port) {
-            return Err(MspErr::DataErr(format!(
-                "Invalid port: {}, expected between 1024 and 65535",
-                port
-            )));
-        }
-
-        Ok(Self {
-            host: host.trim().into(),
-            port,
-        })
-    }
-
-    /// Create Msp using an addr.
-    pub fn create_from_str(addr: &str) -> Result<Self, MspErr> {
-        let socket_addr = match addr.parse::<SocketAddrV4>() {
-            Ok(parsed_addr) => parsed_addr,
-            Err(err) => {
-                return Err(MspErr::DataErr(format!(
-                    "{} can not parse into socket addr, reason: {}",
-                    addr,
-                    err.to_string()
-                )));
-            }
-        };
-
-        Ok(Msp {
-            host: socket_addr.ip().to_string(),
-            port: socket_addr.port(),
-        })
-    }
-
-    pub fn get_server_status(&self) -> Result<Server, MspErr> {
-        server::get_server_status(self)
-    }
-
-    pub fn get_netty_server_status(&self) -> Result<NettyServer, MspErr> {
-        server::get_netty_server_status(self)
-    }
-
-    pub fn get_legacy_server_status(&self) -> Result<LegacyServer, MspErr> {
-        server::get_legacy_server_status(self)
-    }
-
-    pub fn get_beta_legacy_server_status(&self) -> Result<LegacyBetaServer, MspErr> {
-        server::get_beta_legacy_server_status(self)
-    }
-
-    pub fn get_lan_server_status() -> Result<Vec<LanServer>, MspErr> {
-        server::get_lan_server_status()
-    }
-
-    pub fn query(&self) -> Result<QueryBasic, MspErr> {
-        query::query_basic_status(self)
-    }
-
-    pub fn query_full(&self) -> Result<QueryFull, MspErr> {
-        query::query_full_status(self)
-    }
-
-    pub fn get_bedrock_server_status(&self) -> Result<BedrockServer, MspErr> {
-        server::get_bedrock_server_status(self)
-    }
-}
+pub use server::{BedrockServer, LegacyBetaServer, LegacyServer, NettyServer, Server};

@@ -1,7 +1,7 @@
-use msp::{Msp, MspErr};
+use msp::{Conf, MspErr};
 
 fn main() -> Result<(), MspErr> {
-    let server = Msp::create_with_port("grmpixelmon.com", 25565)?;
+    let server = Conf::create_with_port("www.example.com", 25565)?;
 
     println!("{}", server.query_full()?);
 

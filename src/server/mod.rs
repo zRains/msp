@@ -1,15 +1,14 @@
 mod bedrock_server;
-mod lan_server;
 mod legacy_server;
 mod netty_server;
 
 use crate::{
-    util::{create_tcp_socket, get_server_current_time},
+    conf::Conf,
+    share::{create_tcp_socket, get_server_current_time},
     varint::{decode_varint_from_socket, encode_varint},
-    Msp, MspErr,
+    MspErr,
 };
 pub use bedrock_server::*;
-pub use lan_server::*;
 pub use legacy_server::*;
 pub use netty_server::*;
 use serde::{Deserialize, Serialize};
@@ -156,9 +155,9 @@ struct ForgeChannel {
     required: bool,
 }
 
-pub fn get_server_status(msp: &Msp) -> Result<Server, MspErr> {
-    let mut socket = create_tcp_socket(msp)?;
-    let hand_shake_packet = build_handshake_packet(&msp);
+pub fn get_server_status(conf: &Conf) -> Result<Server, MspErr> {
+    let mut socket = create_tcp_socket(conf)?;
+    let hand_shake_packet = build_handshake_packet(&conf);
     let status_request_packet = build_status_request_packet();
 
     socket.write(&hand_shake_packet)?;
@@ -202,10 +201,10 @@ pub fn get_server_status(msp: &Msp) -> Result<Server, MspErr> {
 }
 
 /// Build handshake packet buffer.
-fn build_handshake_packet(msp: &Msp) -> Vec<u8> {
+fn build_handshake_packet(conf: &Conf) -> Vec<u8> {
     let mut packet = Vec::<u8>::new();
     let mut packet_data = Vec::<u8>::new();
-    let mut server_addr_bytes = msp.host.as_bytes().to_vec();
+    let mut server_addr_bytes = conf.host.as_bytes().to_vec();
 
     // See protocol version [numbers](https://wiki.vg/Protocol_version_numbers).
     //

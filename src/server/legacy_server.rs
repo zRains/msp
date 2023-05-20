@@ -1,6 +1,7 @@
 use crate::{
-    util::{bufs_to_utf16_str, create_tcp_socket},
-    Msp, MspErr,
+    conf::Conf,
+    share::{bufs_to_utf16_str, create_tcp_socket},
+    MspErr,
 };
 use serde::Serialize;
 use std::io::{Read, Write};
@@ -42,8 +43,8 @@ impl std::fmt::Display for LegacyBetaServer {
 }
 
 /// Server [before 1.5](https://wiki.vg/Server_List_Ping#1.4_to_1.5)
-pub fn get_legacy_server_status(msp: &Msp) -> Result<LegacyServer, MspErr> {
-    let mut socket = create_tcp_socket(msp)?;
+pub fn get_legacy_server_status(conf: &Conf) -> Result<LegacyServer, MspErr> {
+    let mut socket = create_tcp_socket(conf)?;
     let mut bufs = Vec::<u8>::new();
 
     socket.write(&mut Vec::from([0xFE, 0x01]))?;
@@ -52,8 +53,8 @@ pub fn get_legacy_server_status(msp: &Msp) -> Result<LegacyServer, MspErr> {
     process_legacy_server_bufs(bufs.as_slice())
 }
 
-pub fn get_beta_legacy_server_status(msp: &Msp) -> Result<LegacyBetaServer, MspErr> {
-    let mut socket = create_tcp_socket(msp)?;
+pub fn get_beta_legacy_server_status(conf: &Conf) -> Result<LegacyBetaServer, MspErr> {
+    let mut socket = create_tcp_socket(conf)?;
     let mut bufs = [0u8; 1];
 
     // Prior to Minecraft 1.4, the client only sends 0xFE.

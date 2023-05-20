@@ -1,7 +1,4 @@
-use crate::{
-    util::{create_udp_socket, is_valid_port},
-    MspErr,
-};
+use crate::{share::create_udp_socket, MspErr, SocketConf};
 use serde::Serialize;
 use std::{
     collections::HashMap,
@@ -47,11 +44,14 @@ impl std::fmt::Display for LanServer {
     }
 }
 
-pub fn get_lan_server_status() -> Result<Vec<LanServer>, MspErr> {
+pub fn get_lan_server_status(socket_conf: &SocketConf) -> Result<Vec<LanServer>, MspErr> {
     let mut lan_server_map = HashMap::<LanServer, SystemTime>::new();
     let mut buffer = [0u8; 256];
     let mut outer_loop_time_starter = SystemTime::now();
-    let socket = create_udp_socket(Ipv4Addr::UNSPECIFIED, MULTICAST_PORT)?;
+    let socket = create_udp_socket(&SocketConf {
+        rep_udp_port: MULTICAST_PORT,
+        ..socket_conf.clone()
+    })?;
 
     socket.join_multicast_v4(&MULTICAST_ADDR, &Ipv4Addr::UNSPECIFIED)?;
     socket.set_read_timeout(Some(Duration::from_millis(SERVER_OFFLINE_TIMEOUT)))?;
@@ -135,17 +135,11 @@ fn abstract_broadcast_message(message: &str) -> Result<(&str, u16), MspErr> {
         &message[port_start + BROADCAST_MUST_CONTAIN[2].len()..port_end],
     ) {
         (motd, port) => match port.parse::<u16>() {
+            Ok(p) => Ok((motd, p)),
             Err(_) => Err(MspErr::DataErr(format!(
                 "Can not parse {} into port number",
                 port
             ))),
-            Ok(p) => {
-                if !is_valid_port(p) {
-                    return Err(MspErr::DataErr(format!("Invalid port: {}", p)));
-                }
-
-                Ok((motd, p))
-            }
         },
     }
 }

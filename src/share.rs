@@ -1,6 +1,6 @@
-use crate::{Msp, MspErr};
+use crate::{conf::Conf, MspErr, SocketConf};
 use std::{
-    net::{Ipv4Addr, TcpStream, UdpSocket},
+    net::{TcpStream, UdpSocket},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -26,12 +26,22 @@ pub fn get_server_current_time() -> Result<u64, MspErr> {
     }
 }
 
-pub fn create_tcp_socket(conn_msp: &Msp) -> Result<TcpStream, MspErr> {
-    Ok(TcpStream::connect(conn_msp)?)
+pub fn create_tcp_socket(conf: &Conf) -> Result<TcpStream, MspErr> {
+    let socket = TcpStream::connect(conf)?;
+
+    socket.set_read_timeout(conf.socket_conf.read_time_out)?;
+    socket.set_write_timeout(conf.socket_conf.write_timeout)?;
+
+    Ok(socket)
 }
 
-pub fn create_udp_socket(ip: Ipv4Addr, port: u16) -> Result<UdpSocket, MspErr> {
-    Ok(UdpSocket::bind((ip, port))?)
+pub fn create_udp_socket(socket_conf: &SocketConf) -> Result<UdpSocket, MspErr> {
+    let socket = UdpSocket::bind((socket_conf.rep_udp_ipv4, socket_conf.rep_udp_port))?;
+
+    socket.set_read_timeout(socket_conf.read_time_out)?;
+    socket.set_write_timeout(socket_conf.write_timeout)?;
+
+    Ok(socket)
 }
 
 pub fn is_valid_port(port: u16) -> bool {

@@ -1,6 +1,7 @@
 use crate::{
-    util::{create_udp_socket, UdpReader},
-    Msp, MspErr,
+    conf::Conf,
+    share::{create_udp_socket, UdpReader},
+    MspErr,
 };
 use serde::Serialize;
 use std::net::Ipv4Addr;
@@ -70,8 +71,8 @@ impl std::fmt::Display for ModPlugin {
     }
 }
 
-fn send_query_request(msp: &Msp, full_query: bool) -> Result<UdpReader, MspErr> {
-    let udp_socket = create_udp_socket(Ipv4Addr::UNSPECIFIED, 8000)?;
+fn send_query_request(conf: &Conf, full_query: bool) -> Result<UdpReader, MspErr> {
+    let socket = create_udp_socket(&conf.socket_conf)?;
     let mut bufs = [0u8; 17];
     // Construct init packet
     //
@@ -80,9 +81,9 @@ fn send_query_request(msp: &Msp, full_query: bool) -> Result<UdpReader, MspErr> 
     // Session ID: for convenience, set the session_id to 1([0x00, 0x00, 0x00, 0x01])
     let init_packet: &mut [u8] = &mut [0xFE, 0xFD, 0x09, 0x00, 0x00, 0x00, 0x01];
 
-    udp_socket.connect(msp.to_string())?;
-    udp_socket.send(init_packet)?;
-    udp_socket.recv(&mut bufs)?;
+    socket.connect(conf)?;
+    socket.send(init_packet)?;
+    socket.recv(&mut bufs)?;
 
     let (session_id, token) = get_challenge_token(&mut bufs)?;
 
@@ -102,7 +103,7 @@ fn send_query_request(msp: &Msp, full_query: bool) -> Result<UdpReader, MspErr> 
 
     // Full query except the payload must be padded to 8 bytes.
     // Sending [0x00, 0x00, 0x00, 0x00] at the end works.
-    udp_socket.send(
+    socket.send(
         &[
             init_packet,
             token.to_be_bytes().as_slice(),
@@ -114,7 +115,7 @@ fn send_query_request(msp: &Msp, full_query: bool) -> Result<UdpReader, MspErr> 
         .concat(),
     )?;
     // Use peek instand of recv cause unknown response packet size
-    udp_socket.peek(&mut bufs)?;
+    socket.peek(&mut bufs)?;
 
     if bufs.get(0) != Some(&0x00) {
         return Err(MspErr::DataErr(format!(
@@ -135,7 +136,7 @@ fn send_query_request(msp: &Msp, full_query: bool) -> Result<UdpReader, MspErr> 
             }
 
             // Set Reader index to 5. We don't need Type and Session ID anymore.
-            Ok(UdpReader::create_with_idx(udp_socket, 5))
+            Ok(UdpReader::create_with_idx(socket, 5))
         }
         Err(err) => Err(MspErr::InternalErr(err.to_string())),
     }
@@ -186,8 +187,8 @@ fn get_challenge_token(mut bufs: &mut [u8]) -> Result<(i32, i32), MspErr> {
 }
 
 /// Get basic [status](https://wiki.vg/Query#Basic_stat)
-pub fn query_basic_status(msp: &Msp) -> Result<QueryBasic, MspErr> {
-    let mut udp_reader = send_query_request(msp, false)?;
+pub fn query_basic_status(conf: &Conf) -> Result<QueryBasic, MspErr> {
+    let mut udp_reader = send_query_request(conf, false)?;
 
     Ok(QueryBasic {
         motd: udp_reader.read_nt_str()?,
@@ -201,8 +202,8 @@ pub fn query_basic_status(msp: &Msp) -> Result<QueryBasic, MspErr> {
 }
 
 /// Get full [status](https://wiki.vg/Query#Full_stat)
-pub fn query_full_status(msp: &Msp) -> Result<QueryFull, MspErr> {
-    let mut udp_reader = send_query_request(msp, true)?;
+pub fn query_full_status(conf: &Conf) -> Result<QueryFull, MspErr> {
+    let mut udp_reader = send_query_request(conf, true)?;
 
     // Drop meaningless byte padding
     udp_reader.set_current_idx_forward(11);

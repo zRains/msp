@@ -1,13 +1,13 @@
 use super::{process_legacy_server_bufs, LegacyServer};
-use crate::{create_tcp_socket, Msp, MspErr};
+use crate::{conf::Conf, share::create_tcp_socket, MspErr};
 use std::io::{Read, Write};
 
 pub type NettyServer = LegacyServer;
 
-pub fn get_netty_server_status(msp: &Msp) -> Result<NettyServer, MspErr> {
-    let mut socket = create_tcp_socket(msp)?;
+pub fn get_netty_server_status(conf: &Conf) -> Result<NettyServer, MspErr> {
+    let mut socket = create_tcp_socket(conf)?;
     let mut packet_data = Vec::<u8>::new();
-    let host_u16 = msp.host.encode_utf16().collect::<Vec<_>>();
+    let host_u16 = conf.host.encode_utf16().collect::<Vec<_>>();
 
     packet_data.append(&mut vec![
         0xFE, 0x01, 0xFA, 0x00, 0x0B, 0x00, 0x4D, 0x00, 0x43, 0x00, 0x7C, 0x00, 0x50, 0x00, 0x69,
@@ -16,7 +16,7 @@ pub fn get_netty_server_status(msp: &Msp) -> Result<NettyServer, MspErr> {
     packet_data.append(&mut ((7 + host_u16.len()) as u16).to_be_bytes().to_vec());
     // Protocol version
     packet_data.push(0x50);
-    packet_data.append(&mut (msp.host.len() as u16).to_be_bytes().to_vec());
+    packet_data.append(&mut (conf.host.len() as u16).to_be_bytes().to_vec());
     packet_data.append(
         &mut host_u16
             .iter()
@@ -25,7 +25,7 @@ pub fn get_netty_server_status(msp: &Msp) -> Result<NettyServer, MspErr> {
             .collect(),
     );
     // Server port
-    packet_data.append(&mut (msp.port as u32).to_be_bytes().to_vec());
+    packet_data.append(&mut (conf.port as u32).to_be_bytes().to_vec());
     socket.write(&mut vec![0xFE, 0x01])?;
 
     let mut bufs = Vec::new();

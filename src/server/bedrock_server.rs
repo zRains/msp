@@ -1,8 +1,9 @@
 use serde::Serialize;
 
 use crate::{
-    util::{create_udp_socket, UdpReader},
-    Msp, MspErr,
+    conf::Conf,
+    share::{create_udp_socket, UdpReader},
+    MspErr,
 };
 use std::net::Ipv4Addr;
 
@@ -36,8 +37,8 @@ impl std::fmt::Display for BedrockServer {
     }
 }
 
-pub fn get_bedrock_server_status(msp: &Msp) -> Result<BedrockServer, MspErr> {
-    let socket = create_udp_socket(Ipv4Addr::UNSPECIFIED, 8000)?;
+pub fn get_bedrock_server_status(conf: &Conf) -> Result<BedrockServer, MspErr> {
+    let socket = create_udp_socket(&conf.socket_conf)?;
 
     let packet = [
         // Packet ID
@@ -49,7 +50,7 @@ pub fn get_bedrock_server_status(msp: &Msp) -> Result<BedrockServer, MspErr> {
     ]
     .concat();
 
-    socket.send_to(packet.as_slice(), msp)?;
+    socket.send_to(packet.as_slice(), conf)?;
 
     let mut udp_reader = UdpReader::create_with_idx(socket, 0);
 
@@ -102,7 +103,7 @@ pub fn get_bedrock_server_status(msp: &Msp) -> Result<BedrockServer, MspErr> {
         port_ipv4: if let Some(&p4) = server_info_split.get(10) {
             p4.parse()?
         } else {
-            msp.port
+            conf.port
         },
         port_ipv6: if let Some(&p6) = server_info_split.get(11) {
             p6.parse()?
