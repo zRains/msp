@@ -39,7 +39,7 @@ Or, add this dependency to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-msp = "0.1.0"
+msp = "0.1.2"
 ```
 
 ### Examples

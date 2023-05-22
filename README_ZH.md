@@ -38,7 +38,7 @@ cargo add msp
 
 ```toml
 [dependencies]
-msp = "0.1.0"
+msp = "0.1.2"
 ```
 
 ### 使用方法
