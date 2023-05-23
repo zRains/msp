@@ -38,7 +38,7 @@ Or, add this dependency to your `Cargo.toml` file:
 
 ```toml
 [dependencies]
-msp = "0.1.0"
+msp = "0.1.2"
 ```
 
 ### Examples
@@ -79,9 +79,26 @@ fn main() -> Result<(), MspErr> {
 
 ```no_run
 use msp::{get_lan_server_status, MspErr, SocketConf};
+use std::time::Duration;
+
+const SERVER_OFFLINE_TIMEOUT: u64 = 2000;
 
 fn main() -> Result<(), MspErr> {
-    get_lan_server_status(&SocketConf::default())?;
+    let (_ter, receiver) = get_lan_server_status(&SocketConf {
+        read_time_out: Some(Duration::from_millis(SERVER_OFFLINE_TIMEOUT)),
+        ..Default::default()
+    })?;
+
+    loop {
+        match receiver.recv() {
+            Ok(result) => {
+                if let Ok(Some(server)) = result {
+                    // ...
+                }
+            }
+            Err(_) => {}
+        }
+    }
 
     Ok(())
 }
