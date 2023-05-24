@@ -81,3 +81,77 @@ pub fn decode_varint_from_socket(socket: &mut TcpStream) -> Result<(usize, i32),
 
     Ok((buffer.len(), decode_varint(&buffer)?))
 }
+
+/// Test case from [VarInt_and_VarLong example](https://wiki.vg/Protocol#VarInt_and_VarLong)
+#[cfg(test)]
+mod varint_test {
+    use super::*;
+
+    #[test]
+    fn test_encode_varint() {
+        assert_eq!(encode_varint(0), vec![0x00]);
+        assert_eq!(encode_varint(1), vec![0x01]);
+        assert_eq!(encode_varint(2), vec![0x02]);
+        assert_eq!(encode_varint(127), vec![0x7F]);
+        assert_eq!(encode_varint(128), vec![0x80, 0x01]);
+        assert_eq!(encode_varint(255), vec![0xFF, 0x01]);
+        assert_eq!(encode_varint(25565), vec![0xDD, 0xC7, 0x01]);
+        assert_eq!(encode_varint(2097151), vec![0xFF, 0xFF, 0x7F]);
+        assert_eq!(
+            encode_varint(2147483647),
+            vec![0xFF, 0xFF, 0xFF, 0xFF, 0x07]
+        );
+        assert_eq!(encode_varint(-1), vec![0xFF, 0xFF, 0xFF, 0xFF, 0x0F]);
+        assert_eq!(
+            encode_varint(-2147483648),
+            vec![0x80, 0x80, 0x80, 0x80, 0x08]
+        );
+    }
+
+    #[test]
+    fn test_decode_varint() {
+        let mut decode_result = decode_varint(&vec![0x00]);
+        assert!(decode_result.is_ok());
+        assert_eq!(decode_result.unwrap(), 0);
+
+        decode_result = decode_varint(&vec![0x01]);
+        assert!(decode_result.is_ok());
+        assert_eq!(decode_result.unwrap(), 1);
+
+        decode_result = decode_varint(&vec![0x02]);
+        assert!(decode_result.is_ok());
+        assert_eq!(decode_result.unwrap(), 2);
+
+        decode_result = decode_varint(&vec![0x7F]);
+        assert!(decode_result.is_ok());
+        assert_eq!(decode_result.unwrap(), 127);
+
+        decode_result = decode_varint(&vec![0x80, 0x01]);
+        assert!(decode_result.is_ok());
+        assert_eq!(decode_result.unwrap(), 128);
+
+        decode_result = decode_varint(&vec![0xFF, 0x01]);
+        assert!(decode_result.is_ok());
+        assert_eq!(decode_result.unwrap(), 255);
+
+        decode_result = decode_varint(&vec![0xDD, 0xC7, 0x01]);
+        assert!(decode_result.is_ok());
+        assert_eq!(decode_result.unwrap(), 25565);
+
+        decode_result = decode_varint(&vec![0xFF, 0xFF, 0x7F]);
+        assert!(decode_result.is_ok());
+        assert_eq!(decode_result.unwrap(), 2097151);
+
+        decode_result = decode_varint(&vec![0xFF, 0xFF, 0xFF, 0xFF, 0x07]);
+        assert!(decode_result.is_ok());
+        assert_eq!(decode_result.unwrap(), 2147483647);
+
+        decode_result = decode_varint(&vec![0xFF, 0xFF, 0xFF, 0xFF, 0x0F]);
+        assert!(decode_result.is_ok());
+        assert_eq!(decode_result.unwrap(), -1);
+
+        decode_result = decode_varint(&vec![0x80, 0x80, 0x80, 0x80, 0x08]);
+        assert!(decode_result.is_ok());
+        assert_eq!(decode_result.unwrap(), -2147483648);
+    }
+}

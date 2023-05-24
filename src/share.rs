@@ -213,3 +213,17 @@ impl UdpReader {
         Ok((kv.0.unwrap_or("".into()), kv.1.unwrap_or("".into())))
     }
 }
+
+#[cfg(test)]
+mod share_test {
+    use super::bufs_to_utf16_str;
+
+    #[test]
+    fn test_bufs_to_utf16_str() {
+        let temp = bufs_to_utf16_str(&[0, 104, 0, 101, 0, 108, 0, 108, 0, 111]);
+        assert!(temp.is_ok());
+        assert_eq!(temp.unwrap(), String::from("hello"));
+
+        assert!(bufs_to_utf16_str(&[0, 104, 0, 101, 0, 108, 0]).is_err());
+    }
+}
